@@ -252,7 +252,9 @@ Start by computing the states' average temperature. Use that measurement to clas
 - High: temp >= 25
 
 ```{r}
-
+met_stations[ , elev_cat := fifelse(
+  elev < 90, "low-elev", "high-elev"
+)]
 ```
 
 Once you are done with that, you can compute the following:
@@ -266,7 +268,24 @@ Once you are done with that, you can compute the following:
 All by the levels described before.
 
 ```{r}
+library(tidyr)
+library(kableExtra)
+summary_table <- met_stations %>% 
+  group_by(STATE, elev_cat) %>% 
+  summarize(temp_mean = mean(temp, na.rm = T)) %>% 
+  pivot_wider(names_from = elev_cat, values_from = temp_mean)
 
+kable(summary_table, booktabs = TRUE) %>% 
+  kable_styling(font_size = 10) %>% 
+  kable_paper("hover", full_width = F)
+```
+```{r}
+# summary_table <- summary_table %>% 
+#   mutate(avg_temp_level = case_when(
+#     temp_mean < 20 ~ "low",
+#     temp_mean >= 20 & temp_mean < 25 ~ "mid",
+#     temp_mean >= 25 ~ "high"
+#   ))
 ```
 
 Knit the document, commit your changes, and push them to GitHub. 
@@ -282,4 +301,29 @@ Let's practice running regression models with smooth functions on X. We need the
 
 ```{r}
 library(mgcv)
+library(ggplot2)
+
+station_med_lt <- lazy_dt(station_med)
+station_med_lt <- station_med_lt %>% 
+  filter(between(atm.press, 1000, 1020)) %>% 
+  collect()
+
+ggplot(station_med_lt, aes(x=atm.press, y=temp)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "cyan") +
+  geom_smooth(method = "gam", col = "blue")
 ```
+
+```{r}
+lm_mod <- lm(temp~atm.press, data=station_med_lt)
+summary(lm_mod)
+
+# bs = cr means cubic regression line, k = 20 is 20 degrees of freedom
+gam_mod <- gam(temp~s(atm.press, bs = "cr", k = 20), data = station_med_lt)
+summary(gam_mod)
+plot(gam_mod)
+```
+
+
+
+
