@@ -1,8 +1,7 @@
 ---
 title: "Lab 05 - Data Wrangling"
-output:
-  html_document:
-    html_preview: false
+output: md_document
+always_allow_html: true
 link-citations: yes
 ---
 
@@ -181,7 +180,8 @@ station_med[, wind.sp_50 := quantile(wind.sp, probs = .5, na.rm = TRUE), by = ST
 
 # euclidean distance
 station_med[, eudist := sqrt(
-  (temp - temp_50)^2 + (wind.sp - wind.sp_50)^2
+  (temp - temp_50)^2 + (wind.sp - wind.sp_50)^2 
+  # we omitted atm.press in lab, but we could add another term (atm.press - atm.press_50)^2
 )]
 
 # choose most representative, median, station per state with the lowest euclidean dist
@@ -280,13 +280,42 @@ kable(summary_table, booktabs = TRUE) %>%
   kable_paper("hover", full_width = F)
 ```
 ```{r}
-# summary_table <- summary_table %>% 
-#   mutate(avg_temp_level = case_when(
-#     temp_mean < 20 ~ "low",
-#     temp_mean >= 20 & temp_mean < 25 ~ "mid",
-#     temp_mean >= 25 ~ "high"
-#   ))
+# summary table by temperature classes without elevation stuff
+state_avg_temp <- met_stations %>%
+  group_by(STATE) %>%
+  summarize(
+    num_records = n(),
+    num_na = sum(is.na(temp) | is.na(wind.sp) | is.na(atm.press)), 
+    num_stations = n_distinct(USAFID),
+    temp_mean = mean(temp, na.rm = TRUE),
+    wind.sp_mean = mean(wind.sp, na.rm = TRUE),
+    atm.press_mean = mean(atm.press, na.rm = TRUE)
+  )
+
+state_avg_temp <- state_avg_temp %>%
+  mutate(avg_temp_level = case_when(
+    temp_mean < 20 ~ "low",
+    temp_mean >= 20 & temp_mean < 25 ~ "mid",
+    temp_mean >= 25 ~ "high"
+  ))
+
+summary_table <- state_avg_temp %>%
+  group_by(avg_temp_level) %>%
+  summarize(
+    num_states = n(),
+    num_records = sum(num_records),
+    num_na = sum(num_na), # there is a lot of na values!! mostly in atm.press
+    num_stations = sum(num_stations),
+    temp_mean = mean(temp_mean, na.rm = TRUE),
+    wind_speed_mean = mean(wind.sp_mean, na.rm = TRUE),
+    pressure_mean = mean(atm.press_mean, na.rm = TRUE)
+  )
+
+kable(summary_table, booktabs = TRUE) %>% 
+  kable_styling(font_size = 10) %>% 
+  kable_paper("hover", full_width = F)
 ```
+
 
 Knit the document, commit your changes, and push them to GitHub. 
 
@@ -303,6 +332,7 @@ Let's practice running regression models with smooth functions on X. We need the
 library(mgcv)
 library(ggplot2)
 
+# example from lab with atm.press and temp
 station_med_lt <- lazy_dt(station_med)
 station_med_lt <- station_med_lt %>% 
   filter(between(atm.press, 1000, 1020)) %>% 
@@ -324,6 +354,25 @@ summary(gam_mod)
 plot(gam_mod)
 ```
 
+```{r}
+# looking at wind.sp
+station_med_lt <- lazy_dt(station_med)
+station_med_lt <- station_med_lt %>% 
+  collect()
 
+ggplot(station_med_lt, aes(x=wind.sp, y=temp)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "cyan") +
+  geom_smooth(method = "gam", col = "blue")
+```
 
+```{r}
+lm_mod <- lm(temp~wind.sp, data=station_med_lt)
+summary(lm_mod)
+
+# bs = cr means cubic regression line, k = 20 is 20 degrees of freedom
+gam_mod <- gam(temp~s(wind.sp, bs = "cr", k = 20), data = station_med_lt)
+summary(gam_mod)
+plot(gam_mod)
+```
 
