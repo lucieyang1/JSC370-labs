@@ -70,7 +70,7 @@ query_ids <- GET(
   url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
   query = list(db = "pubmed",
                term = "covid19 toronto",
-               retmax = 1000)
+               retmax = 300) # reduced to 300 to avoid URI too large error
 )
 
 # Extracting the content of the response of GET
@@ -96,7 +96,7 @@ extract that information. Fill out the following lines of code:
 ids <- as.character(ids)
 
 # Find all the ids 
-ids <- stringr::str_extract_all(ids, "<Id>(.*?)</Id>")[[1]]
+ids <- stringr::str_extract_all(ids, "<Id>[0-9]+</Id>")[[1]]
 
 # Remove all the leading and trailing <Id> </Id>. Make use of "|"
 ids <- stringr::str_remove_all(ids, "<Id>|</Id>")
@@ -128,7 +128,7 @@ publications <- GET(
   query = list(
     db = "pubmed",
     id = paste(ids, collapse = ","),
-    retmax = 1000,
+    retmax = 300,
     rettype = "abstract"
     )
 )
@@ -152,9 +152,10 @@ Using the function `stringr::str_extract_all()` applied on
 Write a regular expression that captures all such instances
 
 ``` r
+library(stringr)
 institution <- str_extract_all(
   publications_txt,
-  "[YOUR REGULAR EXPRESSION HERE]"
+  "University of\\s[A-Z][a-z]+|[A-Z][a-z]+\\sInstitute of\\s[A-Z][a-z]+"
   ) 
 institution <- unlist(institution)
 as.data.frame(table(institution))
@@ -170,8 +171,8 @@ And tabulate the results
 
 ``` r
 schools_and_deps <- str_extract_all(
-  abstracts_txt,
-  "[YOUR REGULAR EXPRESSION HERE]"
+  publications_txt,
+  "School of\\s[A-Z][a-z]+|Department of\\s[A-Z][a-z]+"
   )
 as.data.frame(table(schools_and_deps))
 ```
@@ -198,32 +199,43 @@ of `pub_char_list`. You can either use `sapply()` as we just did, or
 simply take advantage of vectorization of `stringr::str_extract`
 
 ``` r
-abstracts <- str_extract(pub_char_list, "[YOUR REGULAR EXPRESSION]")
-abstracts <- str_remove_all(abstracts, "[CLEAN ALL THE HTML TAGS]")
-abstracts <- str_remove_all(abstracts, "[CLEAN ALL EXTRA WHITE SPACE AND NEW LINES]")
+abstracts <- str_extract(pub_char_list, "<AbstractText>(.*?)</AbstractText>")
+abstracts <- str_remove_all(abstracts, "<[A-za-z]+>|</[A-za-z]+>") 
+              # could also do :alpha: or :alnum:
+# abstracts <- str_remove_all(abstracts, "[CLEAN ALL EXTRA WHITE SPACE AND NEW LINES]")
+```
+
+``` r
+sum(is.na(abstracts))
 ```
 
 - How many of these don’t have an abstract?
 
-*Answer here.*
+*182*
 
 Now, the title
 
 ``` r
-titles <- str_extract(pub_char_list, "[YOUR REGULAR EXPRESSION]")
-titles <- str_remove_all(titles, "[CLEAN ALL THE HTML TAGS]")
+titles <- str_extract(pub_char_list, "<ArticleTitle>(.*?)</ArticleTitle>")
+titles <- str_remove_all(titles, "<[A-za-z]+>|</[A-za-z]+>")
+```
+
+``` r
+sum(is.na(titles))
 ```
 
 - How many of these don’t have a title ?
 
-*Answer here.*
+*0. (All of them have titles).*
 
 Finally, put everything together into a single `data.frame` and use
 `knitr::kable` to print the results
 
 ``` r
 database <- data.frame(
-  "[DATA TO CONCATENATE]"
+  PubMedID = ids,
+  title = titles,
+  abstract = abstracts
 )
 knitr::kable(database)
 ```
@@ -243,5 +255,5 @@ For example, if we wanted to add a direct link the HTML page of lecture
 6, we could do something like the following:
 
 ``` md
-View Week 6 Lecture [here]()
+View Week 6 Lecture [here](https://rpubs.com/meredithfranklin/jsc370-slides06)
 ```
