@@ -18,33 +18,33 @@ This markdown document should be rendered using `github_document`
 document ONLY and pushed to your *JSC370-labs* repository in
 `lab06/README.md`.
 
-## Question 1: How many H5N1 (bird flu) papers?
+## Question 1: How many sars-cov-2 papers?
 
-Build an automatic counter of H5N1 papers using PubMed. You will need to
-apply XPath as we did during the lecture to extract the number of
-results returned by PubMed in the following web address:
+Build an automatic counter of sars-cov-2 papers using PubMed. You will
+need to apply XPath as we did during the lecture to extract the number
+of results returned by PubMed in the following web address:
 
-    https://pubmed.ncbi.nlm.nih.gov/?term=h5n1
+    https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2
 
 Complete the lines of code:
 
 ``` r
 # Downloading the website
-website <- xml2::read_html("[URL]")
+website <- xml2::read_html("https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2")
 
 # Finding the counts
-counts <- xml2::xml_find_first(website, "[XPath]")
+counts <- xml2::xml_find_first(website, "/html/body/main/div[9]/div[2]/div[2]/div[1]/div[1]/h3/span")
 
 # Turning it into text
 counts <- as.character(counts)
 
 # Extracting the data using regex
-stringr::str_extract(counts, "[REGEX FOR NUMBERS WITH COMMAS/DOTS]")
+stringr::str_extract(counts, "[0-9.,]+")
 ```
 
-- How many H5N1 papers are there?
+- How many sars-cov-2 papers are there?
 
-*Answer here.*
+*247,751*
 
 Don’t forget to commit your work!
 
@@ -67,8 +67,10 @@ The parameters passed to the query are documented
 ``` r
 library(httr)
 query_ids <- GET(
-  url   = "BASELINE URL",
-  query = list("QUERY PARAMETERS")
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(db = "pubmed",
+               term = "h5n1 toronto",
+               retmax = 1000)
 )
 
 # Extracting the content of the response of GET
