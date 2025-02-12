@@ -203,6 +203,8 @@ abstracts <- str_extract(pub_char_list, "<AbstractText>(.*?)</AbstractText>")
 abstracts <- str_remove_all(abstracts, "<[A-za-z]+>|</[A-za-z]+>") 
               # could also do :alpha: or :alnum:
 # abstracts <- str_remove_all(abstracts, "[CLEAN ALL EXTRA WHITE SPACE AND NEW LINES]")
+# looking at the results, it seems like I already cleaned all extra white space and new lines
+# so cleaning again is unneccesary.
 ```
 
 ``` r
