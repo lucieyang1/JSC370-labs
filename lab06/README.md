@@ -58,7 +58,7 @@ Use the function `httr::GET()` to make the following query:
 2.  Query parameters:
 
     - db: pubmed
-    - term: h5n1 toronto
+    - term: covid19 toronto
     - retmax: 1000
 
 The parameters passed to the query are documented
@@ -69,7 +69,7 @@ library(httr)
 query_ids <- GET(
   url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
   query = list(db = "pubmed",
-               term = "h5n1 toronto",
+               term = "covid19 toronto",
                retmax = 1000)
 )
 
@@ -96,10 +96,10 @@ extract that information. Fill out the following lines of code:
 ids <- as.character(ids)
 
 # Find all the ids 
-ids <- stringr::str_extract_all(ids, "PATTERN")[[1]]
+ids <- stringr::str_extract_all(ids, "<Id>(.*?)</Id>")[[1]]
 
 # Remove all the leading and trailing <Id> </Id>. Make use of "|"
-ids <- stringr::str_remove_all(ids, "PATTERN")
+ids <- stringr::str_remove_all(ids, "<Id>|</Id>")
 ```
 
 With the ids in hand, we can now try to get the abstracts of the papers.
@@ -124,9 +124,12 @@ behavior, you would need to do the following `I("123,456")`.
 
 ``` r
 publications <- GET(
-  url   = "BASELINE URL HERE",
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
   query = list(
-    "PARAMETERS OF THE QUERY"
+    db = "pubmed",
+    id = paste(ids, collapse = ","),
+    retmax = 1000,
+    rettype = "abstract"
     )
 )
 
