@@ -22,6 +22,9 @@ from <https://www.mtsamples.com/> available at
 2.  Render the Rmarkdown document using `github_document` and add it to
     your github site. Add link to github site in your html.
 
+**Link to github:
+<https://github.com/lucieyang1/JSC370-labs/tree/master/lab08>**
+
 ### Setup packages
 
 You should load in `tidyverse`, (or `data.table`), `tidytext`,
@@ -63,7 +66,12 @@ mt_samples |>
   theme_light()
 ```
 
-## There are 30 different medical specialties. Some categories are related, but there does not seem to be much overlap. They are not evenly distributed, the surgery has a significant proportion of the data.
+**There are 30 different medical specialties. Some categories are
+related, but there does not appear to be much overlap. They are not
+evenly distributed, the surgery has a significant proportion of the
+data.**
+
+------------------------------------------------------------------------
 
 ## Question 2: Tokenize
 
@@ -96,7 +104,13 @@ tokens |>
   wordcloud2(size=0.5, color="random-light", backgroundColor = "black")
 ```
 
-## Most frequent words from the transcription are not that useful – a lot of them are common words (the, is, a, he). This does make sense though.
+**The most frequent words from the transcription are not that useful – a
+lot of them are common words that do not enhance meaning (the, is, a,
+he). This does make sense though, as they would be common in the
+transcriptions. “Patient” appears to be the only medical-specific
+word.**
+
+------------------------------------------------------------------------
 
 ## Question 3: Stopwords
 
@@ -138,7 +152,11 @@ tokens |>
   wordcloud2(size=0.5, color="random-light", backgroundColor = "black")
 ```
 
-## We can see more medical related words! Yes, it does give a beter idea of what the text is about.
+**We can see more medical related words, like anesthesia, skin and
+diagnosis! Yes, it does give a beter idea of what the text is about – it
+is medical.**
+
+------------------------------------------------------------------------
 
 ## Question 4: ngrams
 
@@ -159,35 +177,48 @@ tokens_bigram <- mt_samples |>
   filter(!grepl("[[:digit:]]+", ngram)) |>
   group_by(ngram) |>
   summarize(word_frequency = n()) |>
-  arrange(across(word_frequency, desc)) |>
-  head(20)
+  arrange(across(word_frequency, desc)) 
+# |>
+  # head(20)
 
 tokens_bigram |>
+  head(20) |>
   ggplot(aes(fct_reorder(ngram, word_frequency), word_frequency)) +
   geom_col(fill = "salmon") +
   coord_flip() +
   theme_light()
-
-# takes too long, so we skip this!
-# tokens_trigram <- mt_samples |>
-#   select(transcription) |>
-#   unnest_tokens(ngram, transcription, token = "ngrams", n = 3) |>
-#   filter(!grepl(sw_start, ngram, ignore.case=TRUE)) |>
-#   filter(!grepl(sw_end, ngram, ignore.case=TRUE)) |>
-#   filter(!grepl("[[:digit:]]+", ngram)) |>
-#   group_by(ngram) |>
-#   summarize(word_frequency = n()) |>
-#   arrange(across(word_frequency, desc)) |>
-#   head(20)
-# 
-# tokens_trigram |>
-#   ggplot(aes(fct_reorder(ngram, word_frequency), word_frequency)) +
-#   geom_col(fill = "salmon") +
-#   coord_flip() +
-#   theme_light()
 ```
 
-## Interesting bigrams, that make sense, like vital signs. Lower frequency than the 1-words, which also makes sense.
+``` r
+# takes too long, so we skip this!
+tokens_trigram <- mt_samples |>
+  select(transcription) |>
+  unnest_tokens(ngram, transcription, token = "ngrams", n = 3) |>
+  filter(!grepl(sw_start, ngram, ignore.case=TRUE)) |>
+  filter(!grepl(sw_end, ngram, ignore.case=TRUE)) |>
+  filter(!grepl("[[:digit:]]+", ngram)) |>
+  group_by(ngram) |>
+  summarize(word_frequency = n()) |>
+  arrange(across(word_frequency, desc))
+
+tokens_trigram |>
+  head(20) |>
+  ggplot(aes(fct_reorder(ngram, word_frequency), word_frequency)) +
+  geom_col(fill = "salmon") +
+  coord_flip() +
+  theme_light()
+```
+
+**Interesting bigrams, that make sense given the medical transcription
+context, like vital signs. The most frequent bigrams are preoperative
+diagnosis, postoperative diagnosis, and blood loss. All the bigrams have
+lower frequencies than the 1-words, which also makes sense.**
+
+**The bigrams seem to be more terms (ex. blood loss), whereas the
+trigrams are more of phrases or parts of phrases (ex. tolerated the
+procedure, skin was closed, patient was brought).**
+
+------------------------------------------------------------------------
 
 ## Question 5: Examining words
 
@@ -213,6 +244,11 @@ tokens_bigram |>
 # we only did top 20, but would have gotten more words if we did more
 ```
 
+**The top 3 words are blood loss, blood pressure, and estimated blood.
+The other words are: signs, white, red, cells, cell, sugar, sugars,
+pounds, vessels, flow, cord, cultures, supply, return, transfusion,
+clots and pressures.**
+
 ------------------------------------------------------------------------
 
 ## Question 6: Words by Specialties
@@ -233,10 +269,10 @@ mt_samples |>
   top_n(1, n)
 ```
 
-The top word in most of them is “patient”. In radiology and neurology,
-its “left”. Other ones are more related to the specialty, for example
-opthamology has “eye” and podiatry has “foot”, which makes a lot of
-sense.
+**The top word in most specialties is “patient”. In radiology and
+neurology and others, its “left”. Other ones are more related to the
+specialty, for example opthamology has “eye” and podiatry has “foot”,
+which makes a lot of sense.**
 
 ## Question 7: Topic Models
 
@@ -260,7 +296,7 @@ transcripts_dtm <- mt_samples |>
 
 transcripts_dtm <- as.matrix(transcripts_dtm)   
 
-transcripts_lda <- LDA(transcripts_dtm, k = 4, control = list(seed = 1234))
+transcripts_lda <- LDA(transcripts_dtm, k = 5, control = list(seed = 1234))
 ```
 
 ``` r
@@ -280,3 +316,11 @@ top_terms |>
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
 ```
+
+**With k = 4, there does not appear to be any clear topics. Many of the
+words are the same, like procedure, patient, anesthesia. k = 6 gives a
+similar result, although it seems like there might be better defined
+themes: one of them seems related to surgery, while one is more related
+to patient history. k = 10 is similar. Since words like “patient” and
+“procedure” seem to be in all topics, perhaps I should consider adding
+it as a stopword.**
